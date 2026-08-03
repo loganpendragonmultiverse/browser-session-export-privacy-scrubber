@@ -1,0 +1,9 @@
+{
+  "redact_all_titles": true,
+  "redact_text_keys": ["notes"],
+  "drop_keys": ["internalId"],
+  "redact_domains": ["private.example"],
+  "query_allowlist": [],
+  "redact_fragments": true,
+  "redact_private_hosts": true
+}
