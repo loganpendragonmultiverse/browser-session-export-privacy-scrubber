@@ -5,5 +5,8 @@
   "redact_domains": ["private.example"],
   "query_allowlist": [],
   "redact_fragments": true,
-  "redact_private_hosts": true
+  "redact_private_hosts": true,
+  "detect_emails": true,
+  "detect_tokens": true,
+  "detect_paths": true
 }

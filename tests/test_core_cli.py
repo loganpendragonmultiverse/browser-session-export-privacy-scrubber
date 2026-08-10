@@ -56,6 +56,26 @@ def test_invalid_policy_and_non_object_input() -> None:
         scrub({}, {"drop_keys": [""]})
 
 
+def test_opt_in_sensitive_text_detectors_are_value_free() -> None:
+    data = {
+        "contact": "person@example.com",
+        "token": "Bearer eyJheader123.payload456.signature789",
+        "location": r"C:\Users\Avery\private.json",
+    }
+    sanitized, report = scrub(
+        data, {"detect_emails": True, "detect_tokens": True, "detect_paths": True}
+    )
+    assert sanitized["contact"] == "[REDACTED-EMAIL]"
+    assert sanitized["token"] == "[REDACTED-TOKEN]"
+    assert sanitized["location"] == "[REDACTED-PATH]"
+    assert {item["rule"] for item in report["review_queue"]} == {
+        "email",
+        "token",
+        "windows_path",
+    }
+    assert "person@example.com" not in json.dumps(report)
+
+
 def test_write_outputs_are_replacement_safe(tmp_path: Path) -> None:
     sanitized, report = scrub(sample())
     output = tmp_path / "sanitized.json"
@@ -82,3 +102,33 @@ def test_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     )
     assert json.loads(capsys.readouterr().out)["changes"]["redacted_text_fields"] > 0
     assert main([str(source), "--output", str(output)]) == 2
+
+
+def test_batch_cli_creates_individual_and_combined_audits(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    sources = []
+    for name in ("one", "two"):
+        source = tmp_path / f"{name}.json"
+        source.write_text(json.dumps(sample()), encoding="utf-8")
+        sources.append(source)
+    output_dir = tmp_path / "batch"
+    combined = tmp_path / "combined.json"
+    assert (
+        main(
+            [
+                *(str(source) for source in sources),
+                "--output-dir",
+                str(output_dir),
+                "--audit",
+                str(combined),
+            ]
+        )
+        == 0
+    )
+    report = json.loads(capsys.readouterr().out)
+    assert report["batch_size"] == 2
+    assert len(report["combined_sha256"]) == 64
+    assert (output_dir / "one.sanitized.json").exists()
+    assert (output_dir / "two.audit.json").exists()
+    assert json.loads(combined.read_text())["review_required"] is True

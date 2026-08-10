@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "browser-session-export-privacy-scrubber"
-version = "1.0.0"
+version = "1.1.0"
 description = "Sanitize browser-session JSON exports locally before sharing."
 readme = "README.md"
 requires-python = ">=3.10"
