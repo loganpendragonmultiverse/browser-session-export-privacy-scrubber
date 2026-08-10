@@ -4,6 +4,7 @@ import copy
 import hashlib
 import ipaddress
 import json
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import SplitResult, urlsplit, urlunsplit
@@ -12,6 +13,12 @@ PROJECT = "browser-session-export-privacy-scrubber"
 REDACTED = "[REDACTED]"
 DEFAULT_TEXT_KEYS = {"title", "name", "description", "body", "note", "notes", "summary"}
 URL_KEYS = {"url", "uri", "href"}
+EMAIL_RE = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
+TOKEN_RE = re.compile(
+    r"(?:\bBearer\s+)?(?:eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{20,}|[A-Za-z0-9_-]{32,})"
+)
+WINDOWS_PATH_RE = re.compile(r"\b[A-Za-z]:\\(?:[^\\\r\n]+\\)*[^\\\r\n]*")
+UNIX_PATH_RE = re.compile(r"(?<![:/])/(?:Users|home|var|tmp)/[^\s\"']+")
 
 
 def _validate_policy(policy: dict[str, Any] | None) -> dict[str, Any]:
@@ -26,6 +33,9 @@ def _validate_policy(policy: dict[str, Any] | None) -> dict[str, Any]:
         "redact_fragments": bool(data.get("redact_fragments", True)),
         "redact_private_hosts": bool(data.get("redact_private_hosts", True)),
         "redact_all_titles": bool(data.get("redact_all_titles", False)),
+        "detect_emails": bool(data.get("detect_emails", False)),
+        "detect_tokens": bool(data.get("detect_tokens", False)),
+        "detect_paths": bool(data.get("detect_paths", False)),
     }
     for key in ("redact_text_keys", "drop_keys", "redact_domains", "query_allowlist"):
         raw = data.get(key, [])
@@ -89,7 +99,41 @@ def _scrub_url(value: str, policy: dict[str, Any], counters: dict[str, int]) -> 
     )
 
 
-def _walk(value: Any, policy: dict[str, Any], counters: dict[str, int], path: str = "$") -> Any:
+def _review_text(
+    value: str,
+    policy: dict[str, Any],
+    counters: dict[str, int],
+    findings: list[dict[str, str]],
+    path: str,
+) -> str:
+    rules: list[tuple[str, re.Pattern[str], str]] = []
+    if policy["detect_emails"]:
+        rules.append(("email", EMAIL_RE, "[REDACTED-EMAIL]"))
+    if policy["detect_tokens"]:
+        rules.append(("token", TOKEN_RE, "[REDACTED-TOKEN]"))
+    if policy["detect_paths"]:
+        rules.extend(
+            [
+                ("windows_path", WINDOWS_PATH_RE, "[REDACTED-PATH]"),
+                ("unix_path", UNIX_PATH_RE, "[REDACTED-PATH]"),
+            ]
+        )
+    output = value
+    for rule, pattern, replacement in rules:
+        output, count = pattern.subn(replacement, output)
+        if count:
+            counters[f"detected_{rule}"] += count
+            findings.append({"rule": rule, "path": path, "action": "redacted"})
+    return output
+
+
+def _walk(
+    value: Any,
+    policy: dict[str, Any],
+    counters: dict[str, int],
+    findings: list[dict[str, str]],
+    path: str = "$",
+) -> Any:
     if isinstance(value, dict):
         output: dict[str, Any] = {}
         for key, item in value.items():
@@ -107,12 +151,15 @@ def _walk(value: Any, policy: dict[str, Any], counters: dict[str, int], path: st
                 output[key_text] = REDACTED
                 counters["redacted_text_fields"] += 1
             else:
-                output[key_text] = _walk(item, policy, counters, child_path)
+                output[key_text] = _walk(item, policy, counters, findings, child_path)
         return output
     if isinstance(value, list):
         return [
-            _walk(item, policy, counters, f"{path}[{index}]") for index, item in enumerate(value)
+            _walk(item, policy, counters, findings, f"{path}[{index}]")
+            for index, item in enumerate(value)
         ]
+    if isinstance(value, str):
+        return _review_text(value, policy, counters, findings, path)
     return copy.deepcopy(value)
 
 
@@ -135,8 +182,13 @@ def scrub(data: Any, policy: dict[str, Any] | None = None) -> tuple[Any, dict[st
         "dropped_fields": 0,
         "invalid_urls": 0,
         "non_web_urls": 0,
+        "detected_email": 0,
+        "detected_token": 0,
+        "detected_windows_path": 0,
+        "detected_unix_path": 0,
     }
-    output = _walk(data, normalized, counters)
+    findings: list[dict[str, str]] = []
+    output = _walk(data, normalized, counters, findings)
     canonical = json.dumps(
         output, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode()
@@ -146,6 +198,7 @@ def scrub(data: Any, policy: dict[str, Any] | None = None) -> tuple[Any, dict[st
         "adapter": detect_adapter(data),
         "policy": normalized,
         "changes": counters,
+        "review_queue": findings,
         "output_sha256": hashlib.sha256(canonical).hexdigest(),
         "review_required": True,
         "boundary": "The scrubber applies explicit structural rules; users must inspect the sanitized copy before sharing it.",

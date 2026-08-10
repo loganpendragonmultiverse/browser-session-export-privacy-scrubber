@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Export Privacy Scrubber</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; color: #17221d; background: #eef2ed; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      header { padding: 2rem clamp(1rem, 5vw, 4rem); color: white; background: #173d31; }
+      header p { max-width: 62rem; margin-bottom: 0; color: #cce0d8; }
+      main { display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; gap: 1.25rem; padding: 1.25rem; }
+      section { padding: 1.2rem; border: 1px solid #cad4ce; background: white; box-shadow: 0 8px 30px #173d3112; }
+      h1, h2 { margin-top: 0; }
+      label { display: block; margin: .8rem 0; }
+      input[type='text'] { width: 100%; padding: .6rem; }
+      button, .button { display: inline-block; padding: .65rem .9rem; border: 0; color: white; background: #27624e; cursor: pointer; font: inherit; }
+      button.secondary, .button.secondary { color: #173d31; background: #dfeae5; }
+      .drop { display: grid; min-height: 13rem; place-items: center; padding: 2rem; border: 2px dashed #76a08f; background: #f7faf8; text-align: center; }
+      .drop.drag { border-color: #d26a3d; background: #fff7f2; }
+      .toolbar { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1rem 0; }
+      .result { margin-top: 1rem; padding: 1rem; border-left: 4px solid #27624e; background: #f7faf8; }
+      .counts { display: flex; flex-wrap: wrap; gap: .5rem; }
+      .count { padding: .35rem .55rem; background: #e5eee9; font-size: .85rem; }
+      details { margin-top: .7rem; }
+      pre { max-height: 18rem; overflow: auto; padding: 1rem; color: #d8f4e8; background: #10271f; white-space: pre-wrap; word-break: break-word; }
+      .warning { color: #823a22; }
+      @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Session Export Privacy Scrubber</h1>
+      <p>Review and sanitize browser-session JSON entirely on this device. Nothing is uploaded. A human review is still required before sharing.</p>
+    </header>
+    <main>
+      <section aria-labelledby="policy-title">
+        <h2 id="policy-title">Policy</h2>
+        <label><input id="titles" type="checkbox" /> Redact title and note fields</label>
+        <label><input id="emails" type="checkbox" checked /> Detect email addresses</label>
+        <label><input id="tokens" type="checkbox" checked /> Detect token-like strings</label>
+        <label><input id="paths" type="checkbox" checked /> Detect local paths</label>
+        <label><input id="fragments" type="checkbox" checked /> Redact URL fragments</label>
+        <label><input id="private-hosts" type="checkbox" checked /> Hide private and local hosts</label>
+        <label>Domains to hide, comma-separated<input id="domains" type="text" /></label>
+        <label>Allowed query keys, comma-separated<input id="allowlist" type="text" /></label>
+        <div class="toolbar">
+          <label class="button secondary">Import policy<input id="policy-file" type="file" accept="application/json,.json" hidden /></label>
+          <button id="save-policy" class="secondary" type="button">Save policy</button>
+        </div>
+      </section>
+      <section aria-labelledby="files-title">
+        <h2 id="files-title">Files and review</h2>
+        <label id="drop" class="drop">
+          <span><strong>Drop one or more JSON exports here</strong><br />or choose files</span>
+          <input id="files" type="file" accept="application/json,.json" multiple hidden />
+        </label>
+        <p class="warning">Previews can contain original sensitive values. Use this interface only on a trusted device.</p>
+        <div id="results" aria-live="polite"></div>
+      </section>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const redacted = '[REDACTED]';
+      const policy = () => ({
+        redact_all_titles: $('titles').checked,
+        detect_emails: $('emails').checked,
+        detect_tokens: $('tokens').checked,
+        detect_paths: $('paths').checked,
+        redact_fragments: $('fragments').checked,
+        redact_private_hosts: $('private-hosts').checked,
+        redact_domains: $('domains').value.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean),
+        query_allowlist: $('allowlist').value.split(',').map((x) => x.trim()).filter(Boolean),
+      });
+      const download = (name, value) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2) + '\n'], { type: 'application/json' }));
+        link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 500);
+      };
+      const isPrivate = (host) => host === 'localhost' || host.endsWith('.local') || /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+      function sanitize(input, rules) {
+        const changes = {}, review = [];
+        const hit = (rule, path, count = 1) => { changes[rule] = (changes[rule] || 0) + count; review.push({ rule, path, action: 'redacted' }); };
+        const text = (value, path) => {
+          let out = value;
+          const apply = (enabled, rule, regex, replacement) => { if (!enabled) return; let count = 0; out = out.replace(regex, () => { count++; return replacement; }); if (count) hit(rule, path, count); };
+          apply(rules.detect_emails, 'email', /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/gi, '[REDACTED-EMAIL]');
+          apply(rules.detect_tokens, 'token', /(?:Bearer\s+)?(?:eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|gh[pousr]_[A-Za-z0-9]{20,}|[A-Za-z0-9_-]{32,})/g, '[REDACTED-TOKEN]');
+          apply(rules.detect_paths, 'path', /(?:[A-Za-z]:\\[^\r\n]+|\/(?:Users|home|var|tmp)\/[^\s"']+)/g, '[REDACTED-PATH]');
+          return out;
+        };
+        const url = (value, path) => {
+          try {
+            const parsed = new URL(value);
+            if (!['http:', 'https:'].includes(parsed.protocol)) { hit('non_web_url', path); return redacted; }
+            if (isPrivate(parsed.hostname) || rules.redact_domains.some((d) => parsed.hostname === d || parsed.hostname.endsWith('.' + d))) { hit('host', path); return `${parsed.protocol}//[REDACTED-HOST]/`; }
+            if (parsed.username || parsed.password) { parsed.username = ''; parsed.password = ''; hit('credentials', path); }
+            for (const key of [...parsed.searchParams.keys()]) if (!rules.query_allowlist.includes(key)) { parsed.searchParams.set(key, redacted); hit('query', path); }
+            if (parsed.hash && rules.redact_fragments) { parsed.hash = redacted; hit('fragment', path); }
+            return parsed.toString();
+          } catch { hit('invalid_url', path); return redacted; }
+        };
+        const walk = (value, path = '$') => {
+          if (Array.isArray(value)) return value.map((item, i) => walk(item, `${path}[${i}]`));
+          if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+            const next = `${path}.${key}`;
+            if (typeof item === 'string' && ['url', 'uri', 'href'].includes(key.toLowerCase())) return [key, url(item, next)];
+            if (typeof item === 'string' && rules.redact_all_titles && ['title','name','description','body','note','notes','summary'].includes(key.toLowerCase())) { hit('text_field', next); return [key, redacted]; }
+            return [key, walk(item, next)];
+          }));
+          return typeof value === 'string' ? text(value, path) : value;
+        };
+        return { output: walk(input), audit: { schema_version: 1, changes, review_queue: review, review_required: true, boundary: 'Explicit rules cannot prove anonymity; inspect the sanitized copy.' } };
+      }
+      async function processFiles(files) {
+        $('results').replaceChildren();
+        for (const file of files) {
+          const box = document.createElement('article'); box.className = 'result';
+          try {
+            const original = JSON.parse(await file.text());
+            if (!original || typeof original !== 'object') throw new Error('The top level must be an object or array.');
+            const { output, audit } = sanitize(original, policy());
+            box.innerHTML = `<strong>${file.name}</strong><div class="counts"></div><div class="toolbar"></div>`;
+            const counts = box.querySelector('.counts');
+            Object.entries(audit.changes).forEach(([key, count]) => { const badge = document.createElement('span'); badge.className = 'count'; badge.textContent = `${key}: ${count}`; counts.append(badge); });
+            const toolbar = box.querySelector('.toolbar');
+            [['Download sanitized', `${file.name.replace(/\.json$/i, '')}.sanitized.json`, output], ['Download audit', `${file.name.replace(/\.json$/i, '')}.audit.json`, audit]].forEach(([label, name, value]) => { const button = document.createElement('button'); button.textContent = label; button.onclick = () => download(name, value); toolbar.append(button); });
+            const details = document.createElement('details'); details.innerHTML = '<summary>Before / after preview</summary>';
+            const before = document.createElement('pre'); before.textContent = JSON.stringify(original, null, 2);
+            const after = document.createElement('pre'); after.textContent = JSON.stringify(output, null, 2);
+            details.append('Original', before, 'Sanitized', after); box.append(details);
+          } catch (error) { box.textContent = `${file.name}: ${error.message}`; box.classList.add('warning'); }
+          $('results').append(box);
+        }
+      }
+      $('files').onchange = (event) => processFiles(event.target.files);
+      const drop = $('drop');
+      ['dragenter','dragover'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('drag'); }));
+      ['dragleave','drop'].forEach((name) => drop.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('drag'); }));
+      drop.addEventListener('drop', (event) => processFiles(event.dataTransfer.files));
+      $('save-policy').onclick = () => download('session-scrubber-policy.json', policy());
+      $('policy-file').onchange = async (event) => { const value = JSON.parse(await event.target.files[0].text()); for (const [id, key] of [['titles','redact_all_titles'],['emails','detect_emails'],['tokens','detect_tokens'],['paths','detect_paths'],['fragments','redact_fragments'],['private-hosts','redact_private_hosts']]) $(id).checked = Boolean(value[key]); $('domains').value = (value.redact_domains || []).join(', '); $('allowlist').value = (value.query_allowlist || []).join(', '); };
+    </script>
+  </body>
+</html>
