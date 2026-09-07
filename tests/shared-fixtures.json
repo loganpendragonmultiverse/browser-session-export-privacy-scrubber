@@ -1,0 +1,165 @@
+[
+  {
+    "name": "ipv6-private",
+    "input": {
+      "url": "http://[::1]/private",
+      "uri": "https://[fd00::123]/secret",
+      "href": "https://[::ffff:192.168.1.2]/x"
+    },
+    "policy": {}
+  },
+  {
+    "name": "ipv6-public",
+    "input": {
+      "url": "https://[2606:4700:4700::1111]:8443/a?token=canary#x"
+    },
+    "policy": {}
+  },
+  {
+    "name": "encoded-and-duplicate-query",
+    "input": {
+      "url": "https://user:pw@example.test/a?%70age=2&token=canary&token=other#private"
+    },
+    "policy": {
+      "query_allowlist": [
+        "page"
+      ]
+    }
+  },
+  {
+    "name": "private-toggle-off",
+    "input": {
+      "url": "http://192.168.1.1/secret"
+    },
+    "policy": {
+      "redact_private_hosts": false
+    }
+  },
+  {
+    "name": "private-host-classes",
+    "input": [
+      {
+        "url": "http://localhost.localdomain/x"
+      },
+      {
+        "url": "http://printer.local/x"
+      },
+      {
+        "url": "http://169.254.2.3/x"
+      },
+      {
+        "url": "http://100.64.1.2/x"
+      },
+      {
+        "url": "http://%6cocalhost/x"
+      }
+    ],
+    "policy": {}
+  },
+  {
+    "name": "unknown-shape",
+    "input": {
+      "unrecognized": [
+        {
+          "name": "A",
+          "custom": "keep",
+          "pinned": true,
+          "count": 2,
+          "empty": null
+        }
+      ],
+      "remove": "canary"
+    },
+    "policy": {
+      "drop_keys": [
+        "remove"
+      ],
+      "redact_text_keys": [
+        "name"
+      ]
+    }
+  },
+  {
+    "name": "detectors",
+    "input": {
+      "notes": "Email a@example.test",
+      "custom": "ghp_abcdefghijklmnopqrstuvwxyz",
+      "path": "/home/person/file.txt"
+    },
+    "policy": {
+      "detect_emails": true,
+      "detect_tokens": true,
+      "detect_paths": true
+    }
+  },
+  {
+    "name": "windows-path",
+    "input": {
+      "custom": "C:\\Users\\Example\\secret.txt"
+    },
+    "policy": {
+      "detect_paths": true
+    }
+  },
+  {
+    "name": "invalid-port",
+    "input": {
+      "url": "https://example.test:999999/x"
+    },
+    "policy": {}
+  },
+  {
+    "name": "nonweb",
+    "input": {
+      "url": "file:///home/private",
+      "href": "about:blank"
+    },
+    "policy": {}
+  },
+  {
+    "name": "strict",
+    "input": {
+      "title": "canary",
+      "custom": "unknown free text",
+      "url": "https://example.test/private?secret=x#private",
+      "number": 1
+    },
+    "policy": {
+      "redact_all_strings": true,
+      "redact_all_titles": true,
+      "strip_url_paths": true,
+      "drop_query": true
+    }
+  },
+  {
+    "name": "array-empty",
+    "input": [],
+    "policy": {}
+  },
+  {
+    "name": "domain-subdomain",
+    "input": {
+      "url": "https://sub.Example.Test./x"
+    },
+    "policy": {
+      "redact_domains": [
+        "example.test"
+      ]
+    }
+  },
+  {
+    "name": "noncanonical-numeric-hosts",
+    "input": [
+      {
+        "url": "http://127.1/x"
+      },
+      {
+        "url": "http://0x7f000001/x"
+      },
+      {
+        "url": "http://0127.0.0.1/x"
+      }
+    ],
+    "policy": {}
+  }
+]

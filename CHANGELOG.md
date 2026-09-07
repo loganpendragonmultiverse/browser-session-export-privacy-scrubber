@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2026-09-07
+
+- Align Python and browser scrubbing with shared fixtures and add side-by-side strict-sharing previews with retained-field summaries.
+- Added regression coverage for the audited behavior and invalid inputs.
+
 ## 1.1.0 - 2026-08-10
 
 - Added a self-contained local drag-and-drop interface with explicit before/after previews.
