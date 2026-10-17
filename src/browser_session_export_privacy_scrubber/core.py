@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import SplitResult, unquote, urlsplit, urlunsplit
 
+import idna
+
 PROJECT = "browser-session-export-privacy-scrubber"
 REDACTED = "[REDACTED]"
 DEFAULT_TEXT_KEYS = {"title", "name", "description", "body", "note", "notes", "summary"}
@@ -19,6 +21,16 @@ TOKEN_RE = re.compile(
 )
 WINDOWS_PATH_RE = re.compile(r"\b[A-Za-z]:\\(?:[^\\\r\n]+\\)*[^\\\r\n]*")
 UNIX_PATH_RE = re.compile(r"(?<![:/])/(?:Users|home|var|tmp)/[^\s\"']+")
+
+
+def _canonical_domain(value: str) -> str:
+    host = value.lower().rstrip(".")
+    if not host.isascii() or any(label.startswith("xn--") for label in host.split(".")):
+        try:
+            return idna.encode(host, uts46=True, transitional=False).decode("ascii")
+        except idna.IDNAError as exc:
+            raise ValueError("invalid internationalized domain") from exc
+    return host
 
 
 def _validate_policy(policy: dict[str, Any] | None) -> dict[str, Any]:
@@ -63,7 +75,7 @@ def _validate_policy(policy: dict[str, Any] | None) -> dict[str, Any]:
             raise ValueError(
                 f"{key} must contain exact JSON Pointers; dropping the root is not allowed"
             )
-        result[key] = sorted({v.lower() if key == "redact_domains" else v for v in raw})
+        result[key] = sorted({_canonical_domain(v) if key == "redact_domains" else v for v in raw})
     for key, default in defaults.items():
         value = data.get(key, default)
         if not isinstance(value, bool):
@@ -122,7 +134,7 @@ def _private_host(hostname: str) -> bool:
 
 
 def _domain_match(hostname: str, rules: list[str]) -> bool:
-    host = hostname.casefold().rstrip(".")
+    host = _canonical_domain(hostname)
     return any(host == rule.rstrip(".") or host.endswith("." + rule.rstrip(".")) for rule in rules)
 
 
@@ -137,9 +149,12 @@ def _scrub_url(value: str, policy: dict[str, Any], counters: dict[str, int]) -> 
         counters["non_web_urls"] += 1
         return REDACTED
     hostname = unquote(parsed.hostname).lower().rstrip(".")
-    if _domain_match(hostname, policy["redact_domains"]) or (
-        policy["redact_private_hosts"] and _private_host(hostname)
-    ):
+    try:
+        selected_host = _domain_match(hostname, policy["redact_domains"])
+    except ValueError:
+        counters["invalid_urls"] += 1
+        return REDACTED
+    if selected_host or (policy["redact_private_hosts"] and _private_host(hostname)):
         counters["redacted_hosts"] += 1
         return f"{parsed.scheme}://[REDACTED-HOST]/"
     netloc = "[" + hostname + "]" if ":" in hostname else hostname
