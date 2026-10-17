@@ -1,14 +1,21 @@
 # Browser Session Export Privacy Scrubber
 
-> ⭐ **Gold Star Project — finished for its intended scope.**
-> Scope reviewed for **v1.3.0** on **2026-10-17**. Actively maintained; meaningful future development can reopen the scope.
-> [What Gold Star means](https://www.loganpendragonforge.com/open-source/gold-star/)
+> ⭐ **Gold Star Project**
+> I consider this project complete. Fixes, maintenance and good new ideas are still welcome.
+> [About Gold Stars](https://www.loganpendragonforge.com/open-source/?gold=1)
 >
-> Local, policy-driven JSON sanitization and inspectable privacy review evidence in Python and the standalone browser tool.
+> Remove private data from browser-session JSON files, then review what changed before sharing a copy.
+
+## What you can do
+
+- Use built-in privacy rules or choose exact fields to remove or redact.
+- Review a report that names changed fields without copying their private values.
+- Run locally in Python or use the standalone browser page.
+
 
 ## Current release 1.3.0
 
-Redact or drop exact JSON data paths while retaining same-named public fields elsewhere.
+Choose exactly which JSON fields to redact or remove.
 
 Policy JSON accepts redact_paths and drop_paths arrays of exact JSON Pointers, such as {"redact_paths":["/windows/0/tabs/1/title"],"drop_paths":["/private/note"]}. Escape / as ~1 and ~ as ~0 inside a key. Array indices refer to the original input before drops; there are no wildcards (a literal * names a literal key). A parent drop wins; otherwise a parent redaction replaces the whole value. The empty pointer redacts the root; dropping the root is rejected. These rules add targeted removal/redaction, not an exemption from other selected policy rules. Audits contain paths, rule names and counts, never the removed values. Field names, structure and retained content can still identify someone; inspect the sanitized copy.
 
@@ -59,7 +66,7 @@ python -m build
 
 Python 3.10 or newer is supported on Windows, macOS, and Linux. Part of the [Logan Pendragon Forge open-source collection](https://www.loganpendragonforge.com/open-source/). Licensed under the [MIT License](LICENSE).
 
-## Version 1.2.0: reviewed improvements
+## Updates in 1.2.0
 
 Align Python and browser scrubbing with shared fixtures and add side-by-side strict-sharing previews with retained-field summaries.
 
