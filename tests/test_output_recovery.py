@@ -252,21 +252,19 @@ def test_short_write_and_no_progress_cleanup(tmp_path, monkeypatch):
     assert not (tmp_path / "zero").exists()
 
 
-def test_replaced_output_is_preserved(tmp_path, monkeypatch):
+def test_replaced_output_is_preserved(tmp_path):
     pair = [(tmp_path / "one", "one"), (tmp_path / "two", "two")]
-    original = output._write_final
 
-    def replace(item):
-        if item.path == pair[1][0]:
-            replacement = tmp_path / "replacement"
-            replacement.write_text("concurrent replacement")
-            replacement.replace(pair[0][0])
-            raise OSError("synthetic")
-        original(item)
+    def replace_after_close():
+        # Windows prevents replacing a file while its writer is still open.
+        # Replacement after close exercises the same rollback identity guard.
+        replacement = tmp_path / "replacement"
+        replacement.write_text("concurrent replacement")
+        replacement.replace(pair[0][0])
+        raise OSError("synthetic")
 
-    monkeypatch.setattr(output, "_write_final", replace)
     with pytest.raises(OSError, match="kept changed"):
-        output.write_new_outputs(pair)
+        output.write_new_outputs(pair, deliver=replace_after_close)
     assert pair[0][0].read_text() == "concurrent replacement"
     assert not pair[1][0].exists()
 
