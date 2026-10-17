@@ -7,7 +7,8 @@ import sys
 from importlib.resources import files
 from pathlib import Path
 
-from .core import scrub, strict_policy, write_outputs
+from .core import output_documents, scrub, strict_policy
+from .output import write_new_outputs
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,11 +34,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.write_browser:
             if args.source or args.write_browser.exists():
                 raise ValueError("--write-browser requires a new file and no source inputs")
-            args.write_browser.write_text(
-                files("browser_session_export_privacy_scrubber")
-                .joinpath("browser.html")
-                .read_text(encoding="utf-8"),
-                encoding="utf-8",
+            write_new_outputs(
+                [
+                    (
+                        args.write_browser,
+                        files("browser_session_export_privacy_scrubber")
+                        .joinpath("browser.html")
+                        .read_text(encoding="utf-8"),
+                    )
+                ]
             )
             return 0
         if not args.source:
@@ -66,13 +71,14 @@ def main(argv: list[str] | None = None) -> int:
                     "alternate": comparison["retained_summary"],
                     "alternate_changes": comparison["changes"],
                 }
-            write_outputs(sanitized, args.output, report, args.audit)
+            documents = output_documents(sanitized, args.output, report, args.audit)
             result: dict[str, object] = report
         else:
             if args.output or not args.output_dir:
                 parser.error("use --output for one source or --output-dir for batch processing")
             args.output_dir.mkdir(parents=True, exist_ok=True)
             reports: list[dict[str, object]] = []
+            documents = []
             for source_index, source in enumerate(args.source, start=1):
                 data = json.loads(source.read_text(encoding="utf-8"))
                 sanitized, report = scrub(data, policy)
@@ -85,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
                         "alternate": comparison["retained_summary"],
                         "alternate_changes": comparison["changes"],
                     }
-                write_outputs(sanitized, output, report, item_audit)
+                documents.extend(output_documents(sanitized, output, report, item_audit))
                 reports.append({"source_index": source_index, **report})
             canonical = json.dumps(reports, sort_keys=True, separators=(",", ":")).encode()
             result = {
@@ -97,11 +103,15 @@ def main(argv: list[str] | None = None) -> int:
                 "review_required": True,
             }
             if args.audit:
-                if args.audit.exists():
-                    raise ValueError(f"audit output already exists: {args.audit}")
-                args.audit.parent.mkdir(parents=True, exist_ok=True)
-                args.audit.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-        sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+                documents.append((args.audit, json.dumps(result, indent=2) + "\n"))
+        for path, _ in documents:
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+        def deliver() -> None:
+            sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
+            sys.stdout.flush()
+
+        write_new_outputs(documents, deliver)
     except (OSError, UnicodeError, TypeError, ValueError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
