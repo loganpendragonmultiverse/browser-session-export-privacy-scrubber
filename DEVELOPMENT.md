@@ -19,3 +19,11 @@ Local formatting, lint, strict types and regression tests pass. Public release c
 Redact or drop exact JSON data paths while retaining same-named public fields elsewhere.
 
 Policy JSON accepts redact_paths and drop_paths arrays of exact JSON Pointers, such as {"redact_paths":["/windows/0/tabs/1/title"],"drop_paths":["/private/note"]}. Escape / as ~1 and ~ as ~0 inside a key. Array indices refer to the original input before drops; there are no wildcards (a literal * names a literal key). A parent drop wins; otherwise a parent redaction replaces the whole value. The empty pointer redacts the root; dropping the root is rejected. These rules add targeted removal/redaction, not an exemption from other selected policy rules. Audits contain paths, rule names and counts, never the removed values. Field names, structure and retained content can still identify someone; inspect the sanitized copy.
+
+## Gold Star scope review — 2026-10-17
+
+Reviewed release: v1.3.0. Local, policy-driven JSON sanitization and inspectable privacy review evidence in Python and the standalone browser tool.
+
+The identified useful scope gaps have been implemented and verified. This review found no remaining meaningful contribution inside the documented purpose; optionality alone is not a reason to exclude a useful in-scope feature. Bugs, compatibility and dependency maintenance remain active work, and a meaningful new idea can reopen the scope. Gold status is bound to the reviewed release in the Forge catalog. Reassess or remove that status when a new gap is identified.
+
+Definition: https://www.loganpendragonforge.com/open-source/gold-star/
