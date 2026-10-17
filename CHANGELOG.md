@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2 - 2026-10-17
+
+- Match Unicode and punycode selected domains consistently, including subdomains and nontransitional sharp-s handling.
+- Add the Python idna dependency instead of the standard library’s legacy IDNA 2003 mapping; keep browser conversion local and dependency-free.
+
 ## 1.3.1 - 2026-10-17
 
 - Recover ordinary paired and complete-batch export failures, including combined audit and stdout failures, so corrected destinations can be retried.

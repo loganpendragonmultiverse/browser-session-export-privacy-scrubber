@@ -19,3 +19,7 @@ Verify Add exact RFC 6901 redact_paths and drop_paths to Python and the dependen
 ## 1.3.1 output recovery
 
 Treat every CLI invocation as one bounded export operation, including all batch outputs and the combined audit. Stage all data, reserve new destinations exclusively, recover only unchanged files created by the command, and preserve source/existing/concurrently edited files. Test both failure directions, later batch and audit failures, corrected-destination retry, duplicate names, aliases, partial writes and stdout failure. Abrupt termination and power-loss atomicity are not claimed.
+
+## 1.3.2 internationalized selected-host regression acceptance
+
+Run shared Python/Node fixtures for Unicode/punycode rules and input hosts, subdomains, suffix boundaries, sharp-s distinctness and unchanged ASCII/IP handling. Verify the rebuilt standalone interface downloads the selected-policy sanitized JSON after applying an internationalized domain rule. Audit shipped dependencies and test the exact installed tag-built wheel.

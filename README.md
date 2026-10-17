@@ -13,7 +13,9 @@
 - Run locally in Python or use the standalone browser page.
 
 
-## Current release 1.3.1
+## Current release 1.3.2
+
+Selected-domain redaction matches Unicode and ASCII punycode representations of internationalized domain names, including subdomains. Nontransitional normalization keeps `faß.example` distinct from `fass.example`. Python uses the audited `idna` package for IDNA 2008 / UTS #46 processing; the standalone browser uses its built-in local URL hostname conversion and still needs no network or external scripts. Invalid internationalized policy domains fail with an actionable error; invalid input hostnames are redacted. ASCII/IP behavior and explicit JSON-path rules remain unchanged.
 
 Choose exactly which JSON fields to redact or remove.
 
@@ -50,7 +52,7 @@ Processing is local with no network requests, storage service, telemetry, or acc
 
 Detectors are intentionally conservative and can miss or overmatch unusual values. Structural rules cannot understand every export format or identify secrets hidden in encoded payloads, filenames, unexpected keys, or arbitrary prose. Before/after previews contain the original values and should only be used on a trusted device. Always inspect the sanitized copy before sharing it, and never treat an audit as proof that a document is anonymous.
 
-## Current release
+## Supported workflows
 
 The current release supports the local review interface, reusable policies, sensitive-text detectors, strict-sharing comparisons and exact data-path rules.
 

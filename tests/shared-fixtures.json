@@ -218,5 +218,57 @@
         "/value/secret"
       ]
     }
+  },
+  {
+    "name": "idn-unicode-rule",
+    "input": {
+      "url": "https://xn--bcher-kva.example/private?x=1",
+      "uri": "https://sub.xn--bcher-kva.example/x",
+      "href": "https://notxn--bcher-kva.example/x"
+    },
+    "policy": {
+      "redact_domains": [
+        "bücher.example"
+      ]
+    }
+  },
+  {
+    "name": "idn-punycode-rule",
+    "input": {
+      "url": "https://BÜCHER.example/private",
+      "uri": "https://sub.bücher.example/x",
+      "href": "https://bücher.example.evil.test/x"
+    },
+    "policy": {
+      "redact_domains": [
+        "xn--bcher-kva.example"
+      ]
+    }
+  },
+  {
+    "name": "idn-sharp-s",
+    "input": {
+      "url": "https://xn--fa-hia.example/private",
+      "uri": "https://faß.example/x",
+      "href": "https://fass.example/x"
+    },
+    "policy": {
+      "redact_domains": [
+        "faß.example"
+      ]
+    }
+  },
+  {
+    "name": "idn-ascii-ip-unchanged",
+    "input": {
+      "url": "https://example.test/x?secret=value",
+      "uri": "http://192.168.1.2/private",
+      "href": "https://[2606:4700:4700::1111]/x"
+    },
+    "policy": {
+      "redact_domains": [
+        "bücher.example"
+      ]
+    }
   }
 ]
