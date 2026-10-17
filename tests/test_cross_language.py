@@ -25,6 +25,7 @@ def test_shared_behavior(case):
         [node, "-e", code, str(ROOT / "web/core.js")],
         input=json.dumps(case),
         text=True,
+        encoding="utf-8",
         capture_output=True,
         check=True,
     )
