@@ -23,3 +23,9 @@ Treat every CLI invocation as one bounded export operation, including all batch 
 ## 1.3.2 internationalized selected-host regression acceptance
 
 Run shared Python/Node fixtures for Unicode/punycode rules and input hosts, subdomains, suffix boundaries, sharp-s distinctness and unchanged ASCII/IP handling. Verify the rebuilt standalone interface downloads the selected-policy sanitized JSON after applying an internationalized domain rule. Audit shipped dependencies and test the exact installed tag-built wheel.
+
+## 1.3.3 acceptance
+
+Use raw JSON text containing 9007199254740993, negative unsafe IDs and 1e400 to verify a clear Python-guidance error before any browser result or download. Check safe numeric boundaries, Python integer preservation, unknown-version labels, invalid domain policies and valid IP/IDN rules. Compare browser SHA-256 against reference UTF-8 vectors and actual downloaded bytes. Exercise selected/strict audits, multiple files and stale-result clearing in Chromium, Firefox and WebKit using the built bundle.
+
+Python also rejects non-finite float values before output while preserving larger integer IDs. Verify that overflowed JSON numbers and NaN/Infinity inputs fail without creating output files.
