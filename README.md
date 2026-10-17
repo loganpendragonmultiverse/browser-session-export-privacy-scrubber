@@ -1,6 +1,8 @@
 # Browser Session Export Privacy Scrubber
 
-> Gold review is paused while export failure recovery is verified.
+> ⭐ **Gold Star Project**
+> I consider this project complete. Fixes, maintenance and good new ideas are still welcome.
+> [About Gold Stars](https://www.loganpendragonforge.com/open-source/?gold=1)
 >
 > Remove private data from browser-session JSON files, then review what changed before sharing a copy.
 

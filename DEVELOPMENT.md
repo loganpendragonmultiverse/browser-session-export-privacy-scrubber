@@ -24,10 +24,14 @@ Policy JSON accepts redact_paths and drop_paths arrays of exact JSON Pointers, s
 
 Remove private data from browser-session JSON files, then review what changed before sharing a copy.
 
-Gold review is paused pending verification of ordinary output failure recovery.
+Logan considers this project complete within its documented local sanitization and human-review purpose. Continue fixes and maintenance, and consider good new ideas. The reviewed release is v1.3.1.
 
 Definition: https://www.loganpendragonforge.com/open-source/?gold=1
 
 ## 1.3.1 output recovery
 
 Treat every CLI invocation as one bounded export operation, including all batch outputs and the combined audit. Stage all data, reserve new destinations exclusively, recover only unchanged files created by the command, and preserve source/existing/concurrently edited files. Test both failure directions, later batch and audit failures, corrected-destination retry, duplicate names, aliases, partial writes and stdout failure. Abrupt termination and power-loss atomicity are not claimed.
+
+## Gold recovery reassessment — October 17, 2026
+
+v1.3.1 passed 68 source tests and the same 68 tests against the actual tag-built installed wheel, with 97% source coverage, strict types, formatting/lint, dependency audit, protected Windows/macOS/Linux CI and CodeQL. Chromium desktop/mobile, Firefox and WebKit exercised the wheel-bundled page, targeted redaction, sanitized/audit downloads, policy import/export and two-file batches without application network requests or page errors. All three public release assets match the tag artifacts and GitHub digests. Peer source review covered the recovery implementation and failure/retry regressions. No meaningful remaining gap was identified within the documented purpose. Explicit policies still require human inspection, and ordinary-failure recovery does not promise a multi-file power-loss transaction.
