@@ -24,6 +24,10 @@ Policy JSON accepts redact_paths and drop_paths arrays of exact JSON Pointers, s
 
 Remove private data from browser-session JSON files, then review what changed before sharing a copy.
 
-Logan considers this project complete. Continue fixes and maintenance, and consider good new ideas. The catalog records the reviewed release.
+Gold review is paused pending verification of ordinary output failure recovery.
 
 Definition: https://www.loganpendragonforge.com/open-source/?gold=1
+
+## 1.3.1 output recovery
+
+Treat every CLI invocation as one bounded export operation, including all batch outputs and the combined audit. Stage all data, reserve new destinations exclusively, recover only unchanged files created by the command, and preserve source/existing/concurrently edited files. Test both failure directions, later batch and audit failures, corrected-destination retry, duplicate names, aliases, partial writes and stdout failure. Abrupt termination and power-loss atomicity are not claimed.

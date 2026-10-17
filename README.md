@@ -1,8 +1,6 @@
 # Browser Session Export Privacy Scrubber
 
-> ⭐ **Gold Star Project**
-> I consider this project complete. Fixes, maintenance and good new ideas are still welcome.
-> [About Gold Stars](https://www.loganpendragonforge.com/open-source/?gold=1)
+> Gold review is paused while export failure recovery is verified.
 >
 > Remove private data from browser-session JSON files, then review what changed before sharing a copy.
 
@@ -13,7 +11,7 @@
 - Run locally in Python or use the standalone browser page.
 
 
-## Current release 1.3.0
+## Current release 1.3.1
 
 Choose exactly which JSON fields to redact or remove.
 
@@ -33,6 +31,8 @@ session-export-scrub first.json second.json --output-dir sanitized --audit batch
 ```
 
 For a visual workflow, open `web/index.html` in a current browser. Drop one or more exports onto the page, adjust or import a policy, inspect the before/after preview, and download each sanitized file and audit. The page is self-contained and makes no network requests.
+
+CLI exports stage all requested files, reserve new names exclusively, and remove only unchanged files created by a failed invocation. Correct the destination and retry. Existing files and concurrent changes are preserved; failures that prevent safe cleanup identify the retained paths. This covers ordinary failures, not abrupt process termination or power loss across multiple files. Source files remain read-only.
 
 Tabitha Workspaces version 1 exports are identified explicitly. Other JSON objects and arrays use the generic adapter. The source is read-only and existing output or audit files are never overwritten.
 

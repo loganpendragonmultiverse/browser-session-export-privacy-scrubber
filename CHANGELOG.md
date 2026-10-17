@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1 - 2026-10-17
+
+- Recover ordinary paired and complete-batch export failures, including combined audit and stdout failures, so corrected destinations can be retried.
+- Reserve all final names exclusively and preserve existing, replaced or concurrently edited files during cleanup.
+- Prepare all sources and serialized results before publishing any output; reject duplicate batch filenames and audit aliases.
+
 ## 1.3.0 - 2026-10-17
 
 - Add exact RFC 6901 redact_paths and drop_paths to Python and the dependency-free browser

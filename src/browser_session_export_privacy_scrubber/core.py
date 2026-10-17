@@ -313,19 +313,24 @@ def scrub(data: Any, policy: dict[str, Any] | None = None) -> tuple[Any, dict[st
     return output, report
 
 
-def write_outputs(data: Any, output: Path, report: dict[str, Any], audit: Path | None) -> None:
-    output = output.resolve()
-    if output.exists():
-        raise ValueError(f"output already exists: {output}")
-    if audit and audit.resolve() == output:
+def output_documents(
+    data: Any, output: Path, report: dict[str, Any], audit: Path | None
+) -> list[tuple[Path, str]]:
+    if audit and audit.resolve() == output.resolve():
         raise ValueError("audit output must differ from sanitized output")
-    if audit and audit.exists():
-        raise ValueError(f"audit output already exists: {audit}")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    documents = [(output, json.dumps(data, indent=2, ensure_ascii=False) + "\n")]
     if audit:
-        audit.parent.mkdir(parents=True, exist_ok=True)
-        audit.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        documents.append((audit, json.dumps(report, indent=2, ensure_ascii=False) + "\n"))
+    return documents
+
+
+def write_outputs(data: Any, output: Path, report: dict[str, Any], audit: Path | None) -> None:
+    from .output import write_new_outputs
+
+    documents = output_documents(data, output, report, audit)
+    for path, _ in documents:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    write_new_outputs(documents)
 
 
 def retained_summary(value: Any) -> dict[str, int]:
