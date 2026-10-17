@@ -36,14 +36,33 @@ def _validate_policy(policy: dict[str, Any] | None) -> dict[str, Any]:
         "strip_url_paths": False,
         "drop_query": False,
     }
-    lists = ("redact_text_keys", "drop_keys", "redact_domains", "query_allowlist")
+    lists = (
+        "redact_text_keys",
+        "drop_keys",
+        "redact_domains",
+        "query_allowlist",
+        "redact_paths",
+        "drop_paths",
+    )
     if set(data) - set(defaults) - set(lists):
         raise ValueError("unsupported policy fields")
     result: dict[str, Any] = {}
     for key in lists:
         raw = data.get(key, [])
-        if not isinstance(raw, list) or any(not isinstance(v, str) or not v for v in raw):
+        if not isinstance(raw, list) or any(
+            not isinstance(v, str) or (not v and key not in {"redact_paths", "drop_paths"})
+            for v in raw
+        ):
             raise ValueError(f"{key} must contain non-empty strings")
+        if key in {"redact_paths", "drop_paths"} and any(
+            (v != "" and not v.startswith("/"))
+            or re.search(r"~(?![01])", v)
+            or (key == "drop_paths" and v == "")
+            for v in raw
+        ):
+            raise ValueError(
+                f"{key} must contain exact JSON Pointers; dropping the root is not allowed"
+            )
         result[key] = sorted({v.lower() if key == "redact_domains" else v for v in raw})
     for key, default in defaults.items():
         value = data.get(key, default)
@@ -189,16 +208,31 @@ def _walk(
     counters: dict[str, int],
     findings: list[dict[str, str]],
     path: str = "$",
+    pointer: str = "",
 ) -> Any:
+    if pointer in policy["redact_paths"]:
+        counters["redacted_path_values"] += 1
+        findings.append({"rule": "redact_path", "path": pointer, "action": "redacted"})
+        return REDACTED
     if isinstance(value, dict):
         output: dict[str, Any] = {}
         for key, item in value.items():
             key_text = str(key)
             child_path = f"{path}.{key_text}"
+            child_pointer = pointer + "/" + key_text.replace("~", "~0").replace("/", "~1")
+            if child_pointer in policy["drop_paths"]:
+                counters["dropped_fields"] += 1
+                counters["dropped_path_values"] += 1
+                findings.append({"rule": "drop_path", "path": child_pointer, "action": "dropped"})
+                continue
             if key_text in policy["drop_keys"]:
                 counters["dropped_fields"] += 1
                 continue
-            if isinstance(item, str) and key_text.casefold() in URL_KEYS:
+            if child_pointer in policy["redact_paths"]:
+                output[key_text] = _walk(
+                    item, policy, counters, findings, child_path, child_pointer
+                )
+            elif isinstance(item, str) and key_text.casefold() in URL_KEYS:
                 output[key_text] = _scrub_url(item, policy, counters)
             elif isinstance(item, str) and (
                 key_text in policy["redact_text_keys"]
@@ -207,13 +241,22 @@ def _walk(
                 output[key_text] = REDACTED
                 counters["redacted_text_fields"] += 1
             else:
-                output[key_text] = _walk(item, policy, counters, findings, child_path)
+                output[key_text] = _walk(
+                    item, policy, counters, findings, child_path, child_pointer
+                )
         return output
     if isinstance(value, list):
-        return [
-            _walk(item, policy, counters, findings, f"{path}[{index}]")
-            for index, item in enumerate(value)
-        ]
+        result = []
+        for index, item in enumerate(value):
+            child_pointer = pointer + "/" + str(index)
+            if child_pointer in policy["drop_paths"]:
+                counters["dropped_path_values"] += 1
+                findings.append({"rule": "drop_path", "path": child_pointer, "action": "dropped"})
+                continue
+            result.append(
+                _walk(item, policy, counters, findings, f"{path}[{index}]", child_pointer)
+            )
+        return result
     if isinstance(value, str):
         if policy["redact_all_strings"]:
             counters["redacted_text_fields"] += 1
@@ -241,6 +284,8 @@ def scrub(data: Any, policy: dict[str, Any] | None = None) -> tuple[Any, dict[st
         "redacted_hosts": 0,
         "redacted_text_fields": 0,
         "dropped_fields": 0,
+        "redacted_path_values": 0,
+        "dropped_path_values": 0,
         "invalid_urls": 0,
         "non_web_urls": 0,
         "detected_email": 0,

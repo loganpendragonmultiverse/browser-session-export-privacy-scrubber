@@ -1,5 +1,11 @@
 # Browser Session Export Privacy Scrubber
 
+## Current release 1.3.0
+
+Redact or drop exact JSON data paths while retaining same-named public fields elsewhere.
+
+Policy JSON accepts redact_paths and drop_paths arrays of exact JSON Pointers, such as {"redact_paths":["/windows/0/tabs/1/title"],"drop_paths":["/private/note"]}. Escape / as ~1 and ~ as ~0 inside a key. Array indices refer to the original input before drops; there are no wildcards (a literal * names a literal key). A parent drop wins; otherwise a parent redaction replaces the whole value. The empty pointer redacts the root; dropping the root is rejected. These rules add targeted removal/redaction, not an exemption from other selected policy rules. Audits contain paths, rule names and counts, never the removed values. Field names, structure and retained content can still identify someone; inspect the sanitized copy.
+
 [![CI](https://github.com/loganpendragonmultiverse/browser-session-export-privacy-scrubber/actions/workflows/ci.yml/badge.svg)](https://github.com/loganpendragonmultiverse/browser-session-export-privacy-scrubber/actions/workflows/ci.yml)
 
 Create sanitized copies of browser-session JSON exports before sharing them. The local CLI and dependency-free browser interface remove URL credentials, redact query values and fragments, hide private or selected hosts, optionally detect sensitive text, and produce value-free audit evidence.
@@ -31,7 +37,7 @@ Detectors are intentionally conservative and can miss or overmatch unusual value
 
 ## Current release
 
-Version 1.1.0 adds the local drag-and-drop review interface, reusable policy profiles, opt-in sensitive-text detectors, value-free review queues, and collision-safe batch CLI processing with a combined audit.
+The current release supports the local review interface, reusable policies, sensitive-text detectors, strict-sharing comparisons and exact data-path rules.
 
 ## Development
 

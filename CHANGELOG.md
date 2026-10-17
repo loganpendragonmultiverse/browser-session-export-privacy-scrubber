@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 - 2026-10-17
+
+- Add exact RFC 6901 redact_paths and drop_paths to Python and the dependency-free browser
+- Apply paths against original array indices with drop precedence and escaped slash/tilde keys
+- Add value-free path actions and shared Python/browser regression fixtures
+
 ## 1.2.0 - 2026-09-07
 
 - Align Python and browser scrubbing with shared fixtures and add side-by-side strict-sharing previews with retained-field summaries.
