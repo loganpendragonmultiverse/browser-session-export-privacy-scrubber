@@ -24,7 +24,7 @@ Policy JSON accepts redact_paths and drop_paths arrays of exact JSON Pointers, s
 
 Remove private data from browser-session JSON files, then review what changed before sharing a copy.
 
-Logan considers this project complete within its documented local sanitization and human-review purpose. Continue fixes and maintenance, and consider good new ideas. The reviewed release is v1.3.1.
+Logan considers this project complete within its documented local sanitization and human-review purpose. Continue fixes and maintenance, and consider good new ideas. That historical recovery review covered v1.3.1; the catalog records the current reviewed release.
 
 Definition: https://www.loganpendragonforge.com/open-source/?gold=1
 
@@ -35,3 +35,9 @@ Treat every CLI invocation as one bounded export operation, including all batch 
 ## Gold recovery reassessment — October 17, 2026
 
 v1.3.1 passed 68 source tests and the same 68 tests against the actual tag-built installed wheel, with 97% source coverage, strict types, formatting/lint, dependency audit, protected Windows/macOS/Linux CI and CodeQL. Chromium desktop/mobile, Firefox and WebKit exercised the wheel-bundled page, targeted redaction, sanitized/audit downloads, policy import/export and two-file batches without application network requests or page errors. Both public distributions match the tagged build, and all three public assets match their GitHub digests. Peer source review covered the recovery implementation and failure/retry regressions. No meaningful remaining gap was identified within the documented purpose. Explicit policies still require human inspection, and ordinary-failure recovery does not promise a multi-file power-loss transaction.
+
+## 1.3.3 browser data and audit contract
+
+Reject browser numbers that cannot be retained safely before preparing any results, including a whole multi-file batch. Direct larger integer IDs to Python; require finite numbers in both interfaces. Bind browser audits to the exact UTF-8 sanitized download bytes, and include normalized policy and version-aware format classification. Preserve Python canonical fingerprints. Reject URL-shaped domain rules while retaining bare IP/IDN rules. Keep both browser bundles identical to the tested engine. Normal protected checks and exact-head review remain release gates.
+
+Python also rejects non-finite float values before output while preserving larger integer IDs. Verify that overflowed JSON numbers and NaN/Infinity inputs fail without creating output files.

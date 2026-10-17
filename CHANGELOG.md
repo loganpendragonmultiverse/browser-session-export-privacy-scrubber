@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.3 - 2026-10-17
+
+- Classify private hosts after hostname normalization, including Unicode forms of private IPs and .local names.
+
+- Reject non-finite Python numbers before outputs while preserving larger integer IDs.
+
+- Reject unsafe or non-finite browser numbers before results and downloads, with guidance to use Python.
+- Include the effective policy, truthful adapter label and exact-download SHA-256 in browser audits.
+- Reject URL-shaped domain rules while preserving bare IP/IDN matching; classify unknown Tabitha versions as generic JSON.
+
+
 ## 1.3.2 - 2026-10-17
 
 - Match Unicode and punycode selected domains consistently, including subdomains and nontransitional sharp-s handling.

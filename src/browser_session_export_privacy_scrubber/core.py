@@ -4,6 +4,7 @@ import copy
 import hashlib
 import ipaddress
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -25,11 +26,23 @@ UNIX_PATH_RE = re.compile(r"(?<![:/])/(?:Users|home|var|tmp)/[^\s\"']+")
 
 def _canonical_domain(value: str) -> str:
     host = value.lower().rstrip(".")
-    if not host.isascii() or any(label.startswith("xn--") for label in host.split(".")):
+    international = not host.isascii() or any(label.startswith("xn--") for label in host.split("."))
+    message = ("invalid internationalized domain" if international else "invalid domain") + (
+        "; redact_domains requires bare hostnames or IP addresses, without URLs or ports"
+    )
+    if not host or any(char.isspace() or char in "/\\?#@%" for char in host):
+        raise ValueError(message)
+    candidate = host[1:-1] if host.startswith("[") and host.endswith("]") else host
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        if any(char in host for char in ":[]"):
+            raise ValueError(message) from None
+    if international:
         try:
             return idna.encode(host, uts46=True, transitional=False).decode("ascii")
         except idna.IDNAError as exc:
-            raise ValueError("invalid internationalized domain") from exc
+            raise ValueError(message) from exc
     return host
 
 
@@ -150,11 +163,12 @@ def _scrub_url(value: str, policy: dict[str, Any], counters: dict[str, int]) -> 
         return REDACTED
     hostname = unquote(parsed.hostname).lower().rstrip(".")
     try:
-        selected_host = _domain_match(hostname, policy["redact_domains"])
+        canonical_hostname = _canonical_domain(hostname)
+        selected_host = _domain_match(canonical_hostname, policy["redact_domains"])
     except ValueError:
         counters["invalid_urls"] += 1
         return REDACTED
-    if selected_host or (policy["redact_private_hosts"] and _private_host(hostname)):
+    if selected_host or (policy["redact_private_hosts"] and _private_host(canonical_hostname)):
         counters["redacted_hosts"] += 1
         return f"{parsed.scheme}://[REDACTED-HOST]/"
     netloc = "[" + hostname + "]" if ":" in hostname else hostname
@@ -281,14 +295,32 @@ def _walk(
 
 
 def detect_adapter(data: Any) -> str:
-    if isinstance(data, dict) and data.get("format") == "tabitha-workspaces" and "library" in data:
+    if (
+        isinstance(data, dict)
+        and data.get("format") == "tabitha-workspaces"
+        and data.get("version") == 1
+        and not isinstance(data.get("version"), bool)
+        and isinstance(data.get("library"), dict)
+    ):
         return "tabitha-workspaces-v1"
     return "generic-json"
+
+
+def _validate_numbers(value: Any) -> None:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("non-finite JSON numbers are not supported; provide finite numbers")
+    if isinstance(value, dict):
+        for child in value.values():
+            _validate_numbers(child)
+    elif isinstance(value, list):
+        for child in value:
+            _validate_numbers(child)
 
 
 def scrub(data: Any, policy: dict[str, Any] | None = None) -> tuple[Any, dict[str, Any]]:
     if not isinstance(data, (dict, list)):
         raise TypeError("session export must contain a JSON object or array")
+    _validate_numbers(data)
     normalized = _validate_policy(policy)
     counters = {
         "removed_credentials": 0,

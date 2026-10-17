@@ -13,7 +13,15 @@
 - Run locally in Python or use the standalone browser page.
 
 
-## Current release 1.3.2
+## Current release 1.3.3
+
+The browser rejects non-finite numbers and integers outside JavaScript's safe range before showing results or enabling downloads. Use the Python CLI when an export contains larger integer IDs; Python preserves them. Both interfaces require finite numbers.
+
+Browser audits now include the normalized policy, a truthful format label and a SHA-256 fingerprint of the exact sanitized download bytes. The browser records `output_hash_basis: sha256-utf8-sanitized-download`: UTF-8 JSON with two-space indentation, no BOM and no added newline. Python keeps its existing canonical-JSON fingerprint, so hashes from the two interfaces need not match.
+
+Domain rules must be bare hostnames or IP addresses, such as `private.example`, `bücher.example` or `2001:4860:4860::8888`. URL schemes, paths, credentials and ports are rejected instead of silently missing the selected host. Default private-host redaction also recognizes Unicode spellings that normalize to private IP addresses or .local names. Unknown Tabitha versions use the generic JSON label.
+
+## Updates in 1.3.2
 
 Selected-domain redaction matches Unicode and ASCII punycode representations of internationalized domain names, including subdomains. Nontransitional normalization keeps `faß.example` distinct from `fass.example`. Python uses the audited `idna` package for IDNA 2008 / UTS #46 processing; the standalone browser uses its built-in local URL hostname conversion and still needs no network or external scripts. Invalid internationalized policy domains fail with an actionable error; invalid input hostnames are redacted. ASCII/IP behavior and explicit JSON-path rules remain unchanged.
 
