@@ -29,3 +29,7 @@ Run shared Python/Node fixtures for Unicode/punycode rules and input hosts, subd
 Use raw JSON text containing 9007199254740993, negative unsafe IDs and 1e400 to verify a clear Python-guidance error before any browser result or download. Check safe numeric boundaries, Python integer preservation, unknown-version labels, invalid domain policies and valid IP/IDN rules. Compare browser SHA-256 against reference UTF-8 vectors and actual downloaded bytes. Exercise selected/strict audits, multiple files and stale-result clearing in Chromium, Firefox and WebKit using the built bundle.
 
 Python also rejects non-finite float values before output while preserving larger integer IDs. Verify that overflowed JSON numbers and NaN/Infinity inputs fail without creating output files.
+
+## 1.3.4 stdout regression acceptance
+
+Exercise real closed stdout pipes with small and large reports, complete normal output, partial and zero descriptor writes, and in-memory streams. Verify status 2 without an ignored shutdown exception, unchanged source files, and export rollback and corrected-destination retry.

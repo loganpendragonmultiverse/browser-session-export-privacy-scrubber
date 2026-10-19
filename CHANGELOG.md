@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.4 - 2026-10-19
+
+- Return exit status 2 for failed stdout writes, including closed pipes, without an extra interpreter shutdown warning.
+- Preserve export rollback when stdout delivery fails.
+
 ## 1.3.3 - 2026-10-17
 
 - Classify private hosts after hostname normalization, including Unicode forms of private IPs and .local names.

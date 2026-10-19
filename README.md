@@ -13,7 +13,11 @@
 - Run locally in Python or use the standalone browser page.
 
 
-## Current release 1.3.3
+## Prepared release 1.3.4 — 2026-10-19
+
+Failed stdout writes, including a closed pipe, return exit status 2 with an error diagnostic. If delivery fails, the command recovers unchanged files it created during that export, so the destination can be corrected and retried. Normal report contents and existing file-preservation behavior are unchanged.
+
+## Updates in 1.3.3
 
 The browser rejects non-finite numbers and integers outside JavaScript's safe range before showing results or enabling downloads. Use the Python CLI when an export contains larger integer IDs; Python preserves them. Both interfaces require finite numbers.
 

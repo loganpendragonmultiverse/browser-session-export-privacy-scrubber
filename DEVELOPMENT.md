@@ -41,3 +41,7 @@ v1.3.1 passed 68 source tests and the same 68 tests against the actual tag-built
 Reject browser numbers that cannot be retained safely before preparing any results, including a whole multi-file batch. Direct larger integer IDs to Python; require finite numbers in both interfaces. Bind browser audits to the exact UTF-8 sanitized download bytes, and include normalized policy and version-aware format classification. Preserve Python canonical fingerprints. Reject URL-shaped domain rules while retaining bare IP/IDN rules. Keep both browser bundles identical to the tested engine. Normal protected checks and exact-head review remain release gates.
 
 Python also rejects non-finite float values before output while preserving larger integer IDs. Verify that overflowed JSON numbers and NaN/Infinity inputs fail without creating output files.
+
+## 1.3.4 stdout regression acceptance
+
+Exercise real closed stdout pipes with small and large reports, complete normal output, partial and zero descriptor writes, and in-memory streams. Verify status 2 without an ignored shutdown exception, unchanged source files, and export rollback and corrected-destination retry.
