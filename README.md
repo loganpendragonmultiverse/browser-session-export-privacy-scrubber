@@ -13,7 +13,11 @@
 - Run locally in Python or use the standalone browser page.
 
 
-## Current release 1.3.3
+## Prepared release 1.3.4 — 2026-10-19
+
+Failed stdout writes, including a closed pipe, return exit status 2 with an error diagnostic. If delivery fails, the command recovers unchanged files it created during that export, so the destination can be corrected and retried. Normal report contents and existing file-preservation behavior are unchanged.
+
+## Updates in 1.3.3
 
 The browser rejects non-finite numbers and integers outside JavaScript's safe range before showing results or enabling downloads. Use the Python CLI when an export contains larger integer IDs; Python preserves them. Both interfaces require finite numbers.
 
@@ -87,7 +91,3 @@ session-export-scrub --write-browser session-review.html
 ```
 
 The self-contained browser UI and Python engine share fixtures for private/public IPv6, mapped IPv4, noncanonical numeric hosts, percent-encoded/repeated query keys, private-host opt-out, unknown JSON shapes, detectors and strict profiles. --profile strict redacts free-text strings and removes URL paths/query data; field names, structure, numbers/booleans and public hosts remain, so anonymity is not guaranteed. --compare-policy adds value-free retained-field/count comparisons to CLI audits. The browser compares selected and strict policies, imports/exports complete policies and downloads separate sanitized files/audits. --write-browser exports the bundled interface from the installed wheel. Existing URL credential removal, duplicates and fragments are preserved or redacted according to explicit rules; private-host checkbox behavior, IPv6 brackets, malformed-port handling and filename HTML injection are corrected. Desktop/mobile localhost QA passed; file-scheme offline launch is not claimed because the available browser blocks that scheme.
-
-## Changes prepared for 1.3.4
-
-Failed stdout writes, including a closed pipe, return exit status 2 with an error diagnostic. If delivery fails, the command recovers unchanged files it created during that export, so the destination can be corrected and retried. Normal report contents and existing file-preservation behavior are unchanged.
