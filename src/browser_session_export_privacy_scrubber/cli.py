@@ -2,13 +2,33 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
+import os
 import sys
 from importlib.resources import files
 from pathlib import Path
 
 from .core import output_documents, scrub, strict_policy
 from .output import write_new_outputs
+
+
+def _write_stdout(rendered: str) -> None:
+    """Deliver report bytes without leaving a failed buffered write for shutdown."""
+    try:
+        descriptor = sys.stdout.fileno()
+    except (AttributeError, io.UnsupportedOperation):
+        sys.stdout.write(rendered)
+        sys.stdout.flush()
+        return
+    pending = memoryview(
+        rendered.encode(sys.stdout.encoding or "utf-8", sys.stdout.errors or "strict")
+    )
+    while pending:
+        written = os.write(descriptor, pending)
+        if written <= 0:
+            raise OSError("stdout accepted no report bytes")
+        pending = pending[written:]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -108,8 +128,7 @@ def main(argv: list[str] | None = None) -> int:
             path.parent.mkdir(parents=True, exist_ok=True)
 
         def deliver() -> None:
-            sys.stdout.write(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
-            sys.stdout.flush()
+            _write_stdout(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
 
         write_new_outputs(documents, deliver)
     except (OSError, UnicodeError, TypeError, ValueError, json.JSONDecodeError) as exc:
